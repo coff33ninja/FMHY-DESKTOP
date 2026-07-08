@@ -30,15 +30,15 @@ jobs:
       - name: Create Release
         shell: pwsh
         run: |
-          $prerelease = "${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}"
+          $isPre = "${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}"
           $args = @(
             'release', 'create', '${{ github.ref_name }}',
             'dist/*.exe', 'dist/*.exe.blockmap',
             '--title', '${{ github.ref_name }}',
-            '--generate-notes',
-            '--latest'
+            '--generate-notes'
           )
-          if ($prerelease -eq 'true') { $args += '--prerelease' }
+          if ($isPre -eq 'false') { $args += '--latest' }
+          if ($isPre -eq 'true') { $args += '--prerelease' }
           & 'gh' $args
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
