@@ -43,13 +43,39 @@ function shouldBlockRequest(details) {
   return engine.match(request).match === true;
 }
 
+const ADBLOCK_CACHE = path.join(userDataPath, 'adblock-engine.bin');
+
 async function setupAdBlocker() {
+  try {
+    const data = fs.readFileSync(ADBLOCK_CACHE);
+    engine = FiltersEngine.deserialize(data);
+    refreshAdBlocker();
+    return;
+  } catch {}
+
   try {
     const lists = await fetchLists(fetch, adsAndTrackingLists);
     const resources = await fetchResources(fetch);
     engine = FiltersEngine.parse(lists.join('\n'), { resources, enableCompression: true });
+    fs.writeFileSync(ADBLOCK_CACHE, Buffer.from(engine.serialize()));
   } catch (err) {
     console.error('Failed to load ad blocker:', err);
+  }
+}
+
+async function refreshAdBlocker() {
+  try {
+    const lists = await fetchLists(fetch, adsAndTrackingLists);
+    const resources = await fetchResources(fetch);
+    const fresh = FiltersEngine.parse(lists.join('\n'), { resources, enableCompression: true });
+    const raw = Buffer.from(fresh.serialize());
+    const cached = fs.readFileSync(ADBLOCK_CACHE);
+    if (!raw.equals(cached)) {
+      engine = fresh;
+      fs.writeFileSync(ADBLOCK_CACHE, raw);
+    }
+  } catch (err) {
+    console.error('Background adblock update failed:', err);
   }
 }
 
