@@ -16,6 +16,7 @@ module.exports = [
         process: 'readonly',
         console: 'readonly',
         setTimeout: 'readonly',
+        clearTimeout: 'readonly',
         requestAnimationFrame: 'readonly',
         MutationObserver: 'readonly',
         atob: 'readonly',

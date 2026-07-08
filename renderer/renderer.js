@@ -86,9 +86,10 @@ function createTab(url) {
     updateTabUI(tab);
   });
 
-  webview.addEventListener('new-window', (e) => {
+  webview.addEventListener('new-window', async (e) => {
     e.preventDefault();
-    createTab(e.url);
+    const isAd = await fmhyAPI.isAdUrl(e.url);
+    if (!isAd) createTab(e.url);
   });
 
   webview.addEventListener('did-fail-load', (e) => {

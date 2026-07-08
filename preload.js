@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('fmhyAPI', {
   toggleWhitelist: (domain) => ipcRenderer.invoke('toggle-whitelist', domain),
   getDownloads: () => ipcRenderer.invoke('get-downloads'),
   isFmhy: (url) => ipcRenderer.invoke('is-fmhy', url),
+  isAdUrl: (url) => ipcRenderer.invoke('is-ad-url', url),
   saveTabs: (urls) => ipcRenderer.invoke('save-tabs', urls),
   getFavicon: () => ipcRenderer.invoke('get-favicon'),
   getPathForFile: (file) => webUtils.getPathForFile(file),

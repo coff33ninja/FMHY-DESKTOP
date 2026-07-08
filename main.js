@@ -48,19 +48,9 @@ async function setupAdBlocker() {
     const lists = await fetchLists(fetch, adsAndTrackingLists);
     const resources = await fetchResources(fetch);
     engine = FiltersEngine.parse(lists.join('\n'), { resources, enableCompression: true });
-    registerAdBlocker();
   } catch (err) {
     console.error('Failed to load ad blocker:', err);
   }
-}
-
-let adblockRegistered = false;
-function registerAdBlocker() {
-  if (!engine || adblockRegistered) return;
-  adblockRegistered = true;
-  session.defaultSession.webRequest.onBeforeRequest({ urls: ['https://*/*', 'http://*/*'] }, (details, callback) => {
-    callback({ cancel: shouldBlockRequest(details) });
-  });
 }
 
 function isFmhyDomain(url) {
@@ -109,6 +99,11 @@ ipcMain.handle('toggle-whitelist', async (_, domain) => {
 });
 ipcMain.handle('get-downloads', () => downloads);
 ipcMain.handle('is-fmhy', (_, url) => isFmhyDomain(url));
+ipcMain.handle('is-ad-url', (_, url) => {
+  if (!engine) return false;
+  const result = engine.match(Request.fromRawDetails({ url, type: 'main_frame' }));
+  return result.match === true;
+});
 ipcMain.handle('save-tabs', async (_, urls) => {
   await saveJSON(tabsPath, urls);
 });
@@ -204,6 +199,13 @@ function createMainWindow() {
 }
 
 app.whenReady().then(async () => {
+  session.defaultSession.webRequest.onBeforeRequest({ urls: ['https://*/*', 'http://*/*'] }, (details, callback) => {
+    callback({ cancel: shouldBlockRequest(details) });
+  });
+  session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+    callback(permission !== 'notifications');
+  });
+
   createMainWindow();
   setupAdBlocker();
 

@@ -87,13 +87,16 @@ function initVideoDownload() {
       display: flex;
       align-items: center;
       justify-content: center;
-      opacity: 0;
-      transition: opacity .2s;
       line-height: 1;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .15s;
     }
-    video:hover + .fmhy-dl-btn,
-    .fmhy-dl-btn:hover { opacity: 1; }
-    .fmhy-dl-btn:hover { background: rgba(233,69,96,.8); }
+    .fmhy-dl-btn.show, .fmhy-dl-btn.show {
+      pointer-events: auto;
+      opacity: 1;
+    }
+    .fmhy-dl-btn.show:hover { background: rgba(233,69,96,.8); }
   `;
   document.head.appendChild(style);
 
@@ -106,6 +109,15 @@ function initVideoDownload() {
     btn.className = 'fmhy-dl-btn';
     btn.textContent = '\u2B07';
     btn.title = 'Download video';
+
+    let hideTimer;
+    function showBtn() { clearTimeout(hideTimer); btn.classList.add('show'); }
+    function hideBtn() { hideTimer = setTimeout(() => btn.classList.remove('show'), 100); }
+
+    video.addEventListener('mouseenter', showBtn);
+    video.addEventListener('mouseleave', hideBtn);
+    btn.addEventListener('mouseenter', showBtn);
+    btn.addEventListener('mouseleave', hideBtn);
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       e.preventDefault();
