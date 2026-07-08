@@ -1,6 +1,6 @@
 # FMHY Browser
 
-A dedicated desktop browser for [fmhy.net](https://fmhy.net) and linked external sites. Built on Electron with ad-blocking, tab management, bookmarks, PiP, download manager, and automatic Base64 link decoding.
+**Unofficial** desktop app for [fmhy.net](https://fmhy.net) and linked external sites. Not affiliated with or endorsed by FMHY. Built on Electron with ad-blocking, tab management, bookmarks, PiP, download manager, and automatic Base64 link decoding.
 
 ## Quick Start
 
@@ -86,3 +86,4 @@ Output goes to `dist/`.
 - `contextIsolation: true`, `nodeIntegration: false`, `sandbox: false`, `webviewTag: true`
 - Ad-block loads asynchronously on app start; all navigations and fetches are filtered
 - Webview preload (`webview-preload.js`) communicates with the renderer via `ipcRenderer.sendToHost`
+- Node.js 22+ required (see `.nvmrc`)
