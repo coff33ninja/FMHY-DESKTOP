@@ -81,4 +81,4 @@ Prioritized list of improvements for v0.1.3-alpha.
   - [x] 22. LICENSE file
   - [x] 23. Expand .gitignore
   - [x] 24. Fix README
-  - [x] 25. Remove redundant config
+  - [ ] ~~25. Remove oneClick: false~~ *(not redundant — nsis needs it for allowToChangeInstallationDirectory)*
