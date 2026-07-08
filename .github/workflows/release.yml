@@ -28,11 +28,17 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release
+        shell: pwsh
         run: |
-          gh release create "${{ github.ref_name }}" dist/*.exe dist/*.exe.blockmap `
-            --title "${{ github.ref_name }}" `
-            --generate-notes `
-            --latest `
-            ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') && '--prerelease' || '' }}
+          $prerelease = "${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}"
+          $args = @(
+            'release', 'create', '${{ github.ref_name }}',
+            'dist/*.exe', 'dist/*.exe.blockmap',
+            '--title', '${{ github.ref_name }}',
+            '--generate-notes',
+            '--latest'
+          )
+          if ($prerelease -eq 'true') { $args += '--prerelease' }
+          & 'gh' $args
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
