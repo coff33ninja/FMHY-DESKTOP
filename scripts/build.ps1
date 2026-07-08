@@ -11,7 +11,7 @@ if ($Pack) {
 }
 
 if ($LASTEXITCODE -eq 0) {
-  Write-Host "Build complete — output in dist/" -ForegroundColor Green
+  Write-Host "Build complete - output in dist/" -ForegroundColor Green
 } else {
   throw "Build failed"
 }

@@ -35,7 +35,7 @@ function createTab(url) {
   const tabEl = document.createElement('div');
   tabEl.className = 'tab';
   tabEl.dataset.tabId = id;
-  tabEl.innerHTML = '<span class="title">New Tab</span><button class="close-tab">&times;</button>';
+  tabEl.innerHTML = '<img class="favicon" src="" alt=""><span class="title">New Tab</span><button class="close-tab">&times;</button>';
   tabEl.querySelector('.close-tab').onclick = (e) => { e.stopPropagation(); closeTab(id); };
   tabEl.onclick = () => switchTab(id);
   tabsContainer.appendChild(tabEl);
@@ -140,6 +140,11 @@ function updateTabUI(tab) {
   if (titleEl) {
     titleEl.textContent = tab.title || 'New Tab';
     tab.el.title = tab.url || tab.title;
+  }
+  const faviconEl = tab.el.querySelector('.favicon');
+  if (faviconEl) {
+    faviconEl.src = tab.favicon || '';
+    faviconEl.style.display = tab.favicon ? '' : 'none';
   }
 }
 
@@ -269,9 +274,11 @@ document.getElementById('titlebar').addEventListener('dblclick', (e) => {
 });
 
 // ---- Sidebar ----
-document.getElementById('sidebar-toggle').onclick = () => {
+function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('collapsed');
-};
+}
+document.getElementById('sidebar-toggle').onclick = toggleSidebar;
+document.getElementById('sidebar-btn').onclick = toggleSidebar;
 
 // ---- Downloads ----
 fmhyAPI.onDownloadStart((entry) => {
@@ -300,8 +307,7 @@ fmhyAPI.onDownloadUpdate((entry) => {
 });
 
 document.getElementById('download-toggle').onclick = () => {
-  downloadBar.classList.add('hidden');
-  downloadList.innerHTML = '';
+  downloadBar.classList.toggle('hidden');
 };
 
 // ---- Init ----
