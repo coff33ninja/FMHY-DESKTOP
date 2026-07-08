@@ -59,7 +59,7 @@ fmhy-browser/
 │   ├── index.html          # Custom browser chrome (tabs, toolbar, sidebar)
 │   ├── style.css           # Dark theme frameless UI
 │   └── renderer.js         # Tab management, navigation, bookmarks, ad-toggle, downloads
-├── package.json            # Electron 33, @ghostery/adblocker, electron-builder
+├── package.json            # Electron 43, @ghostery/adblocker, electron-builder
 ├── backups/                # Timestamped project backups
 └── scripts/                # Automation scripts
 ```
