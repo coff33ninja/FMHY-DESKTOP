@@ -28,11 +28,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: false
-          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
-          generate_release_notes: true
-          files: |
-            dist/*.exe
-            dist/*.exe.blockmap
+        run: |
+          gh release create "${{ github.ref_name }}" dist/*.exe dist/*.exe.blockmap `
+            --title "${{ github.ref_name }}" `
+            --generate-notes `
+            --latest `
+            ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') && '--prerelease' || '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
