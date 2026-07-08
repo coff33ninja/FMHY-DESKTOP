@@ -1,0 +1,49 @@
+{
+  "name": "fmhy-browser",
+  "version": "1.0.0",
+  "description": "A dedicated ad-free browser for fmhy.net",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "pack": "electron-builder --win portable",
+    "dist": "electron-builder --win"
+  },
+  "build": {
+    "appId": "net.fmhy.browser",
+    "productName": "FMHY Browser",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "webview-preload.js",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": null
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "extraMetadata": {
+      "main": "main.js"
+    }
+  },
+  "dependencies": {
+    "@ghostery/adblocker": "^2.18.1",
+    "cross-fetch": "^4.1.0"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.0"
+  }
+}

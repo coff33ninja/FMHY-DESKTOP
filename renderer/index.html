@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FMHY Browser</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="titlebar">
+  <div id="drag-region">
+    <span id="app-title">FMHY Browser</span>
+  </div>
+  <div id="window-controls">
+    <button id="minimize-btn">&#x2014;</button>
+    <button id="maximize-btn">&#x25A1;</button>
+    <button id="close-btn">&#x2715;</button>
+  </div>
+</div>
+
+<div id="toolbar">
+  <button id="back-btn" disabled>&#x25C0;</button>
+  <button id="forward-btn" disabled>&#x25B6;</button>
+  <button id="reload-btn">&#x21BB;</button>
+  <div id="url-bar">
+    <input type="text" id="url-input" placeholder="Enter URL or search..." spellcheck="false">
+    <button id="adblock-toggle" title="Ad-block: On">AB</button>
+  </div>
+</div>
+
+<div id="content-area">
+  <div id="sidebar" class="collapsed">
+    <div id="sidebar-header">
+      <span>Bookmarks</span>
+      <button id="sidebar-toggle" title="Toggle sidebar">&#x2630;</button>
+    </div>
+    <div id="bookmark-list"></div>
+  </div>
+
+  <div id="main-area">
+    <div id="tab-bar">
+      <div id="tabs-container"></div>
+      <button id="new-tab-btn" title="New tab">+</button>
+    </div>
+
+    <div id="webview-container">
+      <div id="welcome-page" class="active">
+        <div class="welcome-content">
+          <h1>FMHY Browser</h1>
+          <p>Your ad-free gateway to the free media web.</p>
+          <button id="welcome-start" class="btn-primary">Open FMHY</button>
+          <div id="welcome-bookmarks"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="download-bar" class="hidden">
+      <div id="download-list"></div>
+      <button id="download-toggle" title="Downloads">&#x2B07;</button>
+    </div>
+  </div>
+</div>
+
+<script src="renderer.js"></script>
+</body>
+</html>
