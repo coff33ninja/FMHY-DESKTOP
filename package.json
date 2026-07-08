@@ -1,13 +1,17 @@
 {
   "name": "fmhy-browser",
-  "version": "0.1.3-alpha",
+  "version": "0.1.4-alpha",
   "description": "A dedicated ad-free browser for fmhy.net",
   "main": "main.js",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
     "pack": "electron-builder --win portable",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder --win",
+    "lint": "eslint . --ext .js,.json"
   },
   "build": {
     "appId": "net.fmhy.browser",
@@ -27,10 +31,9 @@
         "nsis",
         "portable"
       ],
-      "icon": null
+      "icon": "build/icon.ico"
     },
     "nsis": {
-      "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "deleteAppDataOnUninstall": false
     },
@@ -39,14 +42,15 @@
     }
   },
   "overrides": {
-    "tar": ">=7.5.16"
+    "tar": "7.5.16"
   },
   "dependencies": {
-    "@ghostery/adblocker": "^2.18.1",
-    "cross-fetch": "^4.1.0"
+    "@ghostery/adblocker": "^2.18.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "electron": "^43.0.0",
-    "electron-builder": "^26.0.0"
+    "electron-builder": "^26.0.0",
+    "eslint": "^10.6.0"
   }
 }

@@ -13,8 +13,12 @@ contextBridge.exposeInMainWorld('fmhyAPI', {
   getWhitelist: () => ipcRenderer.invoke('get-whitelist'),
   toggleWhitelist: (domain) => ipcRenderer.invoke('toggle-whitelist', domain),
   getDownloads: () => ipcRenderer.invoke('get-downloads'),
-  openExternal: (url) => ipcRenderer.invoke('open-external', url),
   isFmhy: (url) => ipcRenderer.invoke('is-fmhy', url),
+  saveTabs: (urls) => ipcRenderer.invoke('save-tabs', urls),
+  getFavicon: () => ipcRenderer.invoke('get-favicon'),
+  getPathForFile: (file) => webUtils.getPathForFile(file),
+  getStoredTabs: () => ipcRenderer.invoke('get-stored-tabs'),
+  downloadVideo: (url) => ipcRenderer.invoke('download-video', url),
   onDownloadStart: (cb) => ipcRenderer.on('download-start', (_, d) => cb(d)),
   onDownloadUpdate: (cb) => ipcRenderer.on('download-update', (_, d) => cb(d)),
 });

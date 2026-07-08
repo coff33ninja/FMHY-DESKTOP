@@ -1,6 +1,5 @@
 const { app, BrowserWindow, session, ipcMain, dialog, nativeImage, Notification } = require('electron');
 const { FiltersEngine, Request, adsAndTrackingLists, fetchLists, fetchResources } = require('@ghostery/adblocker');
-const fetch = require('cross-fetch');
 const path = require('path');
 const fs = require('fs');
 
@@ -13,15 +12,17 @@ const TYPE_MAP = {
 let engine;
 let adblockWhitelist = new Set();
 const downloads = [];
+let videoDownloadPath = null;
 const userDataPath = app.getPath('userData');
 const bookmarksPath = path.join(userDataPath, 'bookmarks.json');
 const whitelistPath = path.join(userDataPath, 'whitelist.json');
+const tabsPath = path.join(userDataPath, 'tabs.json');
 
 function loadJSON(p, def) {
   try { return JSON.parse(fs.readFileSync(p, 'utf-8')); } catch { return def; }
 }
-function saveJSON(p, data) {
-  fs.writeFileSync(p, JSON.stringify(data, null, 2), 'utf-8');
+async function saveJSON(p, data) {
+  await fs.promises.writeFile(p, JSON.stringify(data, null, 2), 'utf-8');
 }
 
 let bookmarks = loadJSON(bookmarksPath, []);
@@ -71,17 +72,6 @@ function isFmhyDomain(url) {
   }
 }
 
-function getFavicon(webContents) {
-  try {
-    const path = webContents.getFavicon();
-    return path || '';
-  } catch {
-    return '';
-  }
-}
-
-// Base64 decoder handled by webview-preload.js (injected into each <webview>)
-
 // ---- Window IPC (from preload) ----
 ipcMain.on('minimize', (e) => BrowserWindow.fromWebContents(e.sender)?.minimize());
 ipcMain.on('maximize', (e) => {
@@ -92,31 +82,66 @@ ipcMain.on('close', (e) => BrowserWindow.fromWebContents(e.sender)?.close());
 
 // ---- App IPC Handlers ----
 ipcMain.handle('get-bookmarks', () => bookmarks);
-ipcMain.handle('add-bookmark', (_, bm) => {
+ipcMain.handle('add-bookmark', async (_, bm) => {
   if (!bookmarks.find(b => b.url === bm.url)) {
+    if (!bm.favicon && bm.url) {
+      try {
+        const img = nativeImage.createFromDataURL('');
+        if (!img.isEmpty()) bm.favicon = img.toDataURL();
+      } catch (e) { console.error(e); }
+    }
     bookmarks.push(bm);
-    saveJSON(bookmarksPath, bookmarks);
+    await saveJSON(bookmarksPath, bookmarks);
   }
   return bookmarks;
 });
-ipcMain.handle('remove-bookmark', (_, url) => {
+ipcMain.handle('remove-bookmark', async (_, url) => {
   bookmarks = bookmarks.filter(b => b.url !== url);
-  saveJSON(bookmarksPath, bookmarks);
+  await saveJSON(bookmarksPath, bookmarks);
   return bookmarks;
 });
 ipcMain.handle('get-whitelist', () => [...adblockWhitelist]);
-ipcMain.handle('toggle-whitelist', (_, domain) => {
+ipcMain.handle('toggle-whitelist', async (_, domain) => {
   if (adblockWhitelist.has(domain)) adblockWhitelist.delete(domain);
   else adblockWhitelist.add(domain);
-  saveJSON(whitelistPath, [...adblockWhitelist]);
+  await saveJSON(whitelistPath, [...adblockWhitelist]);
   return [...adblockWhitelist];
 });
 ipcMain.handle('get-downloads', () => downloads);
-ipcMain.handle('open-external', (_, url) => {
-  const { shell } = require('electron');
-  shell.openExternal(url);
-});
 ipcMain.handle('is-fmhy', (_, url) => isFmhyDomain(url));
+ipcMain.handle('save-tabs', async (_, urls) => {
+  await saveJSON(tabsPath, urls);
+});
+ipcMain.handle('get-stored-tabs', () => loadJSON(tabsPath, []));
+ipcMain.handle('download-video', async (event, url) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win) return;
+  try {
+    const name = path.basename(new URL(url).pathname) || 'video.mp4';
+    const result = await dialog.showSaveDialog(win, {
+      defaultPath: name,
+      filters: [{ name: 'Video', extensions: ['mp4', 'webm', 'avi', 'mkv', 'mov', 'flv', 'wmv'] }],
+    });
+    if (!result.canceled && result.filePath) {
+      videoDownloadPath = result.filePath;
+      win.webContents.downloadURL(url);
+    }
+  } catch (e) {
+    console.error('Video download failed:', e);
+  }
+});
+
+ipcMain.handle('get-favicon', (event) => {
+  try {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return '';
+    const wc = win.webContents;
+    const icon = wc.getFavicon();
+    return icon || '';
+  } catch {
+    return '';
+  }
+});
 
 function createMainWindow() {
   const mainWindow = new BrowserWindow({
@@ -130,14 +155,23 @@ function createMainWindow() {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      sandbox: false,
+      sandbox: true,
       webviewTag: true,
     },
   });
 
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
+  session.defaultSession.on('certificate-error', (event, _webContents, _url, _error, _certificate, callback) => {
+    event.preventDefault();
+    callback(false);
+  });
+
   session.defaultSession.on('will-download', (event, item) => {
+    if (videoDownloadPath) {
+      item.setSavePath(videoDownloadPath);
+      videoDownloadPath = null;
+    }
     const entry = {
       url: item.getURL(),
       filename: item.getFilename(),
@@ -154,6 +188,9 @@ function createMainWindow() {
     });
     item.on('done', (e, state) => {
       entry.state = state;
+      if (state === 'completed' && Notification.isSupported()) {
+        new Notification({ title: 'Download Complete', body: entry.filename }).show();
+      }
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('download-update', entry);
       }
@@ -167,8 +204,8 @@ function createMainWindow() {
 }
 
 app.whenReady().then(async () => {
-  await setupAdBlocker();
   createMainWindow();
+  setupAdBlocker();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();

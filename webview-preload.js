@@ -33,7 +33,7 @@ function initLinkInterceptor() {
           }
           return;
         }
-      } catch {}
+      } catch (e) { console.error(e); }
     }
 
     // All external links open as tabs, regardless of target attribute
@@ -45,23 +45,84 @@ function initLinkInterceptor() {
   }, true);
 
   // MutationObserver for Base64 popup auto-click
+  let observerTimer;
   const observer = new MutationObserver(() => {
-    const selectors = [
-      '.base64-popup .confirm-btn',
-      '.base64-popup button:last-child',
-      '[class*="base64"] button',
-    ];
-    for (const sel of selectors) {
-      try {
-        const btn = document.querySelector(sel);
-        if (btn && btn.textContent.includes('Open')) {
-          btn.click();
-          return;
-        }
-      } catch {}
-    }
+    if (observerTimer) return;
+    observerTimer = requestAnimationFrame(() => {
+      observerTimer = null;
+      const selectors = [
+        '.base64-popup .confirm-btn',
+        '.base64-popup button:last-child',
+        '[class*="base64"] button',
+      ];
+      for (const sel of selectors) {
+        try {
+          const btn = document.querySelector(sel);
+          if (btn && btn.textContent.includes('Open')) {
+            btn.click();
+            return;
+          }
+        } catch (e) { console.error(e); }
+      }
+    });
   });
   observer.observe(document.body, { childList: true, subtree: true });
+}
+
+// Video download overlay
+function initVideoDownload() {
+  const style = document.createElement('style');
+  style.textContent = `
+    .fmhy-dl-btn {
+      position: absolute;
+      top: 8px; right: 8px;
+      width: 32px; height: 32px;
+      background: rgba(0,0,0,.65);
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 4px;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      z-index: 2147483647;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity .2s;
+      line-height: 1;
+    }
+    video:hover + .fmhy-dl-btn,
+    .fmhy-dl-btn:hover { opacity: 1; }
+    .fmhy-dl-btn:hover { background: rgba(233,69,96,.8); }
+  `;
+  document.head.appendChild(style);
+
+  function addDownloadBtn(video) {
+    if (video.dataset.fmhyDownload) return;
+    video.dataset.fmhyDownload = '1';
+    video.style.position = video.style.position || 'relative';
+
+    const btn = document.createElement('button');
+    btn.className = 'fmhy-dl-btn';
+    btn.textContent = '\u2B07';
+    btn.title = 'Download video';
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const src = video.currentSrc || video.src || '';
+      if (src && src.startsWith('http')) {
+        ipcRenderer.sendToHost('download-video', src);
+      }
+    });
+
+    video.parentNode.insertBefore(btn, video.nextSibling);
+  }
+
+  document.querySelectorAll('video').forEach(addDownloadBtn);
+  const obs = new MutationObserver(() => {
+    document.querySelectorAll('video:not([data-fmhy-download])').forEach(addDownloadBtn);
+  });
+  obs.observe(document.body, { childList: true, subtree: true });
 }
 
 // PiP support
@@ -78,9 +139,17 @@ function initPiP() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  try { ipcRenderer.sendToHost('page-title', document.title); } catch {}
-});
+function onReady(fn) {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fn);
+  } else {
+    fn();
+  }
+}
 
-setTimeout(initLinkInterceptor, 500);
-setTimeout(initPiP, 2000);
+onReady(() => {
+  try { ipcRenderer.sendToHost('page-title', document.title); } catch (e) { console.error(e); }
+  initLinkInterceptor();
+  initVideoDownload();
+  initPiP();
+});

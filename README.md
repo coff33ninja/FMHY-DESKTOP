@@ -60,7 +60,7 @@ fmhy-browser/
 │   ├── style.css           # Dark theme frameless UI
 │   └── renderer.js         # Tab management, navigation, bookmarks, ad-toggle, downloads
 ├── package.json            # Electron 43, @ghostery/adblocker, electron-builder
-├── backups/                # Timestamped project backups
+├── docs/                   # Improvement plans and documentation
 └── scripts/                # Automation scripts
 ```
 

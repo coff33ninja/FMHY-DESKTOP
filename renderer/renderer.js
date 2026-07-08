@@ -1,5 +1,6 @@
 let tabs = [];
 let activeTabId = null;
+let previousTabId = null;
 let tabIdCounter = 0;
 let bookmarks = [];
 
@@ -17,9 +18,9 @@ const downloadList = document.getElementById('download-list');
 const downloadBar = document.getElementById('download-bar');
 
 // ---- Window Controls ----
-document.getElementById('minimize-btn').onclick = () => window.electronAPI.minimize();
-document.getElementById('maximize-btn').onclick = () => window.electronAPI.maximize();
-document.getElementById('close-btn').onclick = () => window.electronAPI.close();
+document.getElementById('minimize-btn').addEventListener('click', () => window.electronAPI.minimize());
+document.getElementById('maximize-btn').addEventListener('click', () => window.electronAPI.maximize());
+document.getElementById('close-btn').addEventListener('click', () => window.electronAPI.close());
 
 // ---- Tab Management ----
 function createTab(url) {
@@ -36,8 +37,8 @@ function createTab(url) {
   tabEl.className = 'tab';
   tabEl.dataset.tabId = id;
   tabEl.innerHTML = '<img class="favicon" src="" alt=""><span class="title">New Tab</span><button class="close-tab">&times;</button>';
-  tabEl.querySelector('.close-tab').onclick = (e) => { e.stopPropagation(); closeTab(id); };
-  tabEl.onclick = () => switchTab(id);
+  tabEl.querySelector('.close-tab').addEventListener('click', (e) => { e.stopPropagation(); closeTab(id); });
+  tabEl.addEventListener('click', () => switchTab(id));
   tabsContainer.appendChild(tabEl);
 
   const tab = { id, webview, el: tabEl, url: url || '', title: 'New Tab', favicon: '' };
@@ -48,6 +49,8 @@ function createTab(url) {
       tab.title = e.args[0];
     } else if (e.channel === 'open-tab') {
       createTab(e.args[0]);
+    } else if (e.channel === 'download-video') {
+      fmhyAPI.downloadVideo(e.args[0]);
     }
   });
 
@@ -88,20 +91,34 @@ function createTab(url) {
     createTab(e.url);
   });
 
+  webview.addEventListener('did-fail-load', (e) => {
+    console.error('Page failed to load:', e.url, e.errorDescription);
+  });
+
   switchTab(id);
+  persistTabs();
   return tab;
+}
+
+function persistTabs() {
+  const urls = tabs.map(t => t.url).filter(Boolean);
+  fmhyAPI.saveTabs(urls).catch(console.error);
 }
 
 function switchTab(id) {
   const tab = tabs.find(t => t.id === id);
   if (!tab) return;
+  if (activeTabId !== null) previousTabId = activeTabId;
   activeTabId = id;
 
-  tabs.forEach(t => {
-    t.el.classList.remove('active');
-    t.webview.classList.remove('active');
-    t.webview.style.display = 'none';
-  });
+  if (previousTabId !== null) {
+    const prev = tabs.find(t => t.id === previousTabId);
+    if (prev) {
+      prev.el.classList.remove('active');
+      prev.webview.classList.remove('active');
+      prev.webview.style.display = 'none';
+    }
+  }
 
   tab.el.classList.add('active');
   tab.webview.classList.add('active');
@@ -120,6 +137,7 @@ function closeTab(id) {
   tab.webview.remove();
   tab.el.remove();
   tabs.splice(idx, 1);
+  persistTabs();
   if (tabs.length === 0) {
     activeTabId = null;
     welcomePage.classList.add('active');
@@ -158,6 +176,7 @@ function navigateActiveTab(url) {
   }
   const tab = tabs.find(t => t.id === activeTabId);
   if (tab) {
+    if (finalUrl === tab.url) return;
     tab.webview.loadURL(finalUrl);
   }
 }
@@ -166,23 +185,23 @@ urlInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') navigateActiveTab(urlInput.value);
 });
 
-backBtn.onclick = () => {
+backBtn.addEventListener('click', () => {
   const tab = tabs.find(t => t.id === activeTabId);
   if (tab && tab.webview.canGoBack()) tab.webview.goBack();
-};
+});
 
-forwardBtn.onclick = () => {
+forwardBtn.addEventListener('click', () => {
   const tab = tabs.find(t => t.id === activeTabId);
   if (tab && tab.webview.canGoForward()) tab.webview.goForward();
-};
+});
 
-reloadBtn.onclick = () => {
+reloadBtn.addEventListener('click', () => {
   const tab = tabs.find(t => t.id === activeTabId);
   if (tab) {
     if (tab.webview.isLoading()) tab.webview.stop();
     else tab.webview.reload();
   }
-};
+});
 
 function updateNavButtons() {
   const tab = tabs.find(t => t.id === activeTabId);
@@ -196,8 +215,8 @@ function updateNavButtons() {
 }
 
 // ---- Browser Actions ----
-document.getElementById('new-tab-btn').onclick = () => createTab();
-document.getElementById('welcome-start').onclick = () => createTab('https://fmhy.net');
+document.getElementById('new-tab-btn').addEventListener('click', () => createTab());
+document.getElementById('welcome-start').addEventListener('click', () => createTab('https://fmhy.net'));
 
 // ---- Ad-Block Toggle ----
 function updateAdBlockButton(url) {
@@ -206,13 +225,13 @@ function updateAdBlockButton(url) {
     fmhyAPI.getWhitelist().then(list => {
       if (list.includes(domain)) adblockToggle.classList.add('off');
       else adblockToggle.classList.remove('off');
-    });
+    }).catch(console.error);
   } catch {
     adblockToggle.classList.remove('off');
   }
 }
 
-adblockToggle.onclick = () => {
+adblockToggle.addEventListener('click', () => {
   const tab = tabs.find(t => t.id === activeTabId);
   if (!tab || !tab.url) return;
   try {
@@ -220,9 +239,9 @@ adblockToggle.onclick = () => {
     fmhyAPI.toggleWhitelist(domain).then(() => {
       tab.webview.reload();
       updateAdBlockButton(tab.url);
-    });
-  } catch {}
-};
+    }).catch(console.error);
+  } catch (e) { console.error(e); }
+});
 
 // ---- Bookmarks ----
 function renderBookmarks() {
@@ -241,7 +260,7 @@ function renderBookmarks() {
       });
       el.querySelector('.del').addEventListener('click', (e) => {
         e.stopPropagation();
-        fmhyAPI.removeBookmark(el.dataset.url).then(renderBookmarks);
+        fmhyAPI.removeBookmark(el.dataset.url).then(renderBookmarks).catch(console.error);
       });
     });
   };
@@ -256,8 +275,12 @@ function addCurrentPageBookmark() {
   if (!domain) return;
   const bm = { url: tab.url, title: tab.title || domain, favicon: tab.favicon || '' };
   fmhyAPI.addBookmark(bm).then(() => {
-    fmhyAPI.getBookmarks().then(b => { bookmarks = b; renderBookmarks(); });
-  });
+fmhyAPI.getBookmarks().then(b => { bookmarks = b; renderBookmarks(); }).catch(console.error);
+
+fmhyAPI.getStoredTabs().then(urls => {
+  urls.forEach(url => createTab(url));
+}).catch(console.error);
+  }).catch(console.error);
 }
 
 // Context menu for bookmarking
@@ -273,12 +296,51 @@ document.getElementById('titlebar').addEventListener('dblclick', (e) => {
   addCurrentPageBookmark();
 });
 
+// ---- Keyboard Shortcuts ----
+document.addEventListener('keydown', (e) => {
+  const isCtrl = e.ctrlKey || e.metaKey;
+  if (!isCtrl) return;
+
+  switch (e.key.toLowerCase()) {
+    case 't':
+      e.preventDefault();
+      createTab();
+      break;
+    case 'w':
+      e.preventDefault();
+      if (activeTabId !== null) closeTab(activeTabId);
+      break;
+    case 'l':
+      e.preventDefault();
+      urlInput.focus();
+      urlInput.select();
+      break;
+    case 'r':
+      e.preventDefault();
+      const rt = tabs.find(t => t.id === activeTabId);
+      if (rt) { rt.webview.reload(); }
+      break;
+    case 'd':
+      e.preventDefault();
+      addCurrentPageBookmark();
+      break;
+    case 'tab':
+      e.preventDefault();
+      if (tabs.length < 2) break;
+      const idx = tabs.findIndex(t => t.id === activeTabId);
+      const dir = e.shiftKey ? -1 : 1;
+      const next = tabs[(idx + dir + tabs.length) % tabs.length];
+      switchTab(next.id);
+      break;
+  }
+});
+
 // ---- Sidebar ----
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('collapsed');
 }
-document.getElementById('sidebar-toggle').onclick = toggleSidebar;
-document.getElementById('sidebar-btn').onclick = toggleSidebar;
+document.getElementById('sidebar-toggle').addEventListener('click', toggleSidebar);
+document.getElementById('sidebar-btn').addEventListener('click', toggleSidebar);
 
 // ---- Downloads ----
 fmhyAPI.onDownloadStart((entry) => {
@@ -306,9 +368,9 @@ fmhyAPI.onDownloadUpdate((entry) => {
   }
 });
 
-document.getElementById('download-toggle').onclick = () => {
+document.getElementById('download-toggle').addEventListener('click', () => {
   downloadBar.classList.toggle('hidden');
-};
+});
 
 // ---- Init ----
-fmhyAPI.getBookmarks().then(b => { bookmarks = b; renderBookmarks(); });
+fmhyAPI.getBookmarks().then(b => { bookmarks = b; renderBookmarks(); }).catch(console.error);
