@@ -123,7 +123,7 @@ function initVideoDownload() {
       e.preventDefault();
       const src = video.currentSrc || video.src || '';
       if (src && src.startsWith('http')) {
-        ipcRenderer.sendToHost('download-video', src);
+        ipcRenderer.invoke('download-video', src);
       }
     });
 

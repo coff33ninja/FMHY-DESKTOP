@@ -206,8 +206,8 @@ app.whenReady().then(async () => {
     callback(permission !== 'notifications');
   });
 
+  await setupAdBlocker();
   createMainWindow();
-  setupAdBlocker();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();

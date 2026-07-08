@@ -49,8 +49,6 @@ function createTab(url) {
       tab.title = e.args[0];
     } else if (e.channel === 'open-tab') {
       createTab(e.args[0]);
-    } else if (e.channel === 'download-video') {
-      fmhyAPI.downloadVideo(e.args[0]);
     }
   });
 
