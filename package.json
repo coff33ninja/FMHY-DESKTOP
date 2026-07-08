@@ -1,6 +1,7 @@
 {
   "name": "fmhy-browser",
   "version": "0.1.5-alpha",
+  "author": "coff33ninja",
   "description": "A dedicated ad-free browser for fmhy.net",
   "main": "main.js",
   "engines": {
