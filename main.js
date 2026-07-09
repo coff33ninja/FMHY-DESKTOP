@@ -18,15 +18,18 @@ const bookmarksPath = path.join(userDataPath, 'bookmarks.json');
 const whitelistPath = path.join(userDataPath, 'whitelist.json');
 const tabsPath = path.join(userDataPath, 'tabs.json');
 
-function loadJSON(p, def) {
+function loadJSONSync(p, def) {
   try { return JSON.parse(fs.readFileSync(p, 'utf-8')); } catch { return def; }
+}
+async function loadJSON(p, def) {
+  try { return JSON.parse(await fs.promises.readFile(p, 'utf-8')); } catch { return def; }
 }
 async function saveJSON(p, data) {
   await fs.promises.writeFile(p, JSON.stringify(data, null, 2), 'utf-8');
 }
 
-let bookmarks = loadJSON(bookmarksPath, []);
-adblockWhitelist = new Set(loadJSON(whitelistPath, []));
+let bookmarks = loadJSONSync(bookmarksPath, []);
+adblockWhitelist = new Set(loadJSONSync(whitelistPath, []));
 
 function isWhitelisted(url) {
   try { return adblockWhitelist.has(new URL(url).hostname); } catch { return false; }
@@ -47,7 +50,7 @@ const ADBLOCK_CACHE = path.join(userDataPath, 'adblock-engine.bin');
 
 async function setupAdBlocker() {
   try {
-    const data = fs.readFileSync(ADBLOCK_CACHE);
+    const data = await fs.promises.readFile(ADBLOCK_CACHE);
     engine = FiltersEngine.deserialize(data);
     refreshAdBlocker();
     return;
@@ -57,7 +60,7 @@ async function setupAdBlocker() {
     const lists = await fetchLists(fetch, adsAndTrackingLists);
     const resources = await fetchResources(fetch);
     engine = FiltersEngine.parse(lists.join('\n'), { resources, enableCompression: true });
-    fs.writeFileSync(ADBLOCK_CACHE, Buffer.from(engine.serialize()));
+    await fs.promises.writeFile(ADBLOCK_CACHE, Buffer.from(engine.serialize()));
   } catch (err) {
     console.error('Failed to load ad blocker:', err);
   }
@@ -69,10 +72,10 @@ async function refreshAdBlocker() {
     const resources = await fetchResources(fetch);
     const fresh = FiltersEngine.parse(lists.join('\n'), { resources, enableCompression: true });
     const raw = Buffer.from(fresh.serialize());
-    const cached = fs.readFileSync(ADBLOCK_CACHE);
+    const cached = await fs.promises.readFile(ADBLOCK_CACHE);
     if (!raw.equals(cached)) {
       engine = fresh;
-      fs.writeFileSync(ADBLOCK_CACHE, raw);
+      await fs.promises.writeFile(ADBLOCK_CACHE, raw);
     }
   } catch (err) {
     console.error('Background adblock update failed:', err);
@@ -163,7 +166,7 @@ ipcMain.handle('get-cosmetics', (_, opts) => getCosmetics(opts || {}));
 ipcMain.handle('save-tabs', async (_, urls) => {
   await saveJSON(tabsPath, urls);
 });
-ipcMain.handle('get-stored-tabs', () => loadJSON(tabsPath, []));
+ipcMain.handle('get-stored-tabs', async () => loadJSON(tabsPath, []));
 ipcMain.handle('download-video', async (event, url) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   if (!win) return;

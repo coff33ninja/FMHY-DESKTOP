@@ -157,8 +157,9 @@ function initCosmetics() {
     const classes = new Set(), ids = new Set(), hrefs = new Set();
     try {
       for (const el of document.querySelectorAll('*')) {
-        if (el.className && typeof el.className === 'string')
+        if (el.className && typeof el.className === 'string') {
           el.className.split(/\s+/).forEach(c => { if (c) classes.add(c); });
+        }
         if (el.id) ids.add(el.id);
         const h = el.getAttribute && el.getAttribute('href');
         if (h) hrefs.add(h);
