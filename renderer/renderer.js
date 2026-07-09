@@ -371,5 +371,37 @@ document.getElementById('download-toggle').addEventListener('click', () => {
   downloadBar.classList.toggle('hidden');
 });
 
+// ---- Updates ----
+const updateBanner = document.getElementById('update-banner');
+const updateText = document.getElementById('update-text');
+const updateInstallBtn = document.getElementById('update-install-btn');
+const updateDismissBtn = document.getElementById('update-dismiss-btn');
+
+fmhyAPI.onUpdateAvailable(() => {
+  updateText.textContent = 'Checking for updates...';
+  updateInstallBtn.classList.add('hidden');
+  updateBanner.classList.remove('hidden');
+});
+
+fmhyAPI.onUpdateDownloaded(() => {
+  updateText.textContent = 'Update ready — restart to install';
+  updateInstallBtn.classList.remove('hidden');
+  updateBanner.classList.remove('hidden');
+});
+
+fmhyAPI.onUpdateError((_msg) => {
+  updateText.textContent = 'Update check failed';
+  updateBanner.classList.remove('hidden');
+  setTimeout(() => updateBanner.classList.add('hidden'), 8000);
+});
+
+updateInstallBtn.addEventListener('click', () => {
+  fmhyAPI.installUpdate();
+});
+
+updateDismissBtn.addEventListener('click', () => {
+  updateBanner.classList.add('hidden');
+});
+
 // ---- Init ----
 fmhyAPI.getBookmarks().then(b => { bookmarks = b; renderBookmarks(); }).catch(console.error);

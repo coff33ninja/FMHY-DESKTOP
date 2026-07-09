@@ -1,4 +1,5 @@
 const { app, BrowserWindow, session, ipcMain, dialog, nativeImage, Notification } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const { FiltersEngine, Request, adsAndTrackingLists, fetchLists, fetchResources } = require('@ghostery/adblocker');
 const path = require('path');
 const fs = require('fs');
@@ -185,6 +186,42 @@ ipcMain.handle('download-video', async (event, url) => {
   }
 });
 
+// ---- Auto-Updater ----
+function setupAutoUpdater(mainWindow) {
+  autoUpdater.autoDownload = true;
+
+  autoUpdater.on('checking-for-update', () => {
+    mainWindow.webContents.send('update-available');
+  });
+
+  autoUpdater.on('update-available', () => {
+    mainWindow.webContents.send('update-available');
+  });
+
+  autoUpdater.on('update-not-available', () => {});
+
+  autoUpdater.on('download-progress', () => {});
+
+  autoUpdater.on('update-downloaded', () => {
+    mainWindow.webContents.send('update-downloaded');
+  });
+
+  autoUpdater.on('error', (err) => {
+    console.error('Auto-updater error:', err);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('update-error', err.message);
+    }
+  });
+
+  autoUpdater.checkForUpdates().catch(err => {
+    console.error('Update check failed:', err);
+  });
+}
+
+ipcMain.on('install-update', () => {
+  autoUpdater.quitAndInstall(false, true);
+});
+
 ipcMain.handle('get-favicon', (event) => {
   try {
     const win = BrowserWindow.fromWebContents(event.sender);
@@ -215,6 +252,10 @@ function createMainWindow() {
   });
 
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    setupAutoUpdater(mainWindow);
+  });
 
   session.defaultSession.on('certificate-error', (event, _webContents, _url, _error, _certificate, callback) => {
     event.preventDefault();

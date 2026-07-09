@@ -243,6 +243,37 @@ webview.active { visibility: visible; }
 #welcome-bookmarks { display: flex; flex-direction: column; gap: 4px; align-items: center; }
 #welcome-bookmarks .bookmark-item { width: 300px; }
 
+/* Update banner */
+#update-banner {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  padding: 0 8px;
+  flex-shrink: 0;
+  gap: 8px;
+}
+#update-banner.hidden { display: none; }
+#update-text { flex: 1; font-size: 12px; color: var(--fg); }
+#update-install-btn {
+  padding: 2px 12px;
+  background: #4caf50;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  font-size: 11px;
+  cursor: pointer;
+}
+#update-install-btn:hover { background: #43a047; }
+#update-install-btn.hidden { display: none; }
+#update-dismiss-btn {
+  background: none; border: none;
+  color: var(--fg2); cursor: pointer;
+  font-size: 14px; padding: 2px 6px;
+}
+#update-dismiss-btn:hover { color: var(--fg); }
+
 /* Download bar */
 #download-bar {
   display: flex;
