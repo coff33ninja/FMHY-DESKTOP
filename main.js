@@ -88,6 +88,35 @@ function isFmhyDomain(url) {
   }
 }
 
+// ---- Cosmetic filtering (element hiding) ----
+// Network-level blocking (shouldBlockRequest/onBeforeRequest above) only stops
+// requests. Many ads/trackers are DOM elements that don't need a distinct
+// blockable request (e.g. same-origin injected banners), so we also need
+// cosmetic filters (CSS hide-rules + anti-adblock scriptlets) from the engine,
+// applied inside each webview by webview-preload.js.
+function getCosmetics({ url, classes = [], ids = [], hrefs = [], initial = false }) {
+  if (!engine || !url || isWhitelisted(url)) return null;
+  try {
+    const req = Request.fromRawDetails({ url, type: 'main_frame' });
+    return engine.getCosmeticsFilters({
+      url,
+      hostname: req.hostname,
+      domain: req.domain,
+      classes,
+      ids,
+      hrefs,
+      getBaseRules: initial,
+      getInjectionRules: initial,
+      getRulesFromHostname: initial,
+      getRulesFromDOM: true,
+      getExtendedRules: false,
+    });
+  } catch (err) {
+    console.error('Cosmetic filter lookup failed:', err);
+    return null;
+  }
+}
+
 // ---- Window IPC (from preload) ----
 ipcMain.on('minimize', (e) => BrowserWindow.fromWebContents(e.sender)?.minimize());
 ipcMain.on('maximize', (e) => {
@@ -130,6 +159,7 @@ ipcMain.handle('is-ad-url', (_, url) => {
   const result = engine.match(Request.fromRawDetails({ url, type: 'main_frame' }));
   return result.match === true;
 });
+ipcMain.handle('get-cosmetics', (_, opts) => getCosmetics(opts || {}));
 ipcMain.handle('save-tabs', async (_, urls) => {
   await saveJSON(tabsPath, urls);
 });
@@ -232,8 +262,9 @@ app.whenReady().then(async () => {
     callback(permission !== 'notifications');
   });
 
-  await setupAdBlocker();
   createMainWindow();
+
+  await setupAdBlocker();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();

@@ -12,7 +12,7 @@ npm start
 ## Features
 
 ### Ad-Blocking
-Uses `@ghostery/adblocker` with EasyList + uBlock Origin filters (14 lists). Hooked into `session.defaultSession.webRequest.onBeforeRequest`. Per-domain whitelist toggled via the `AB` button in the URL bar — whitelisted domains persist across sessions in `userData/whitelist.json`.
+Uses `@ghostery/adblocker` with EasyList + uBlock Origin filters (14 lists). Hooked into `session.defaultSession.webRequest.onBeforeRequest`. Per-domain whitelist toggled via the `AB` button in the URL bar — whitelisted domains persist across sessions in `userData/whitelist.json`. Cosmetic filtering (CSS element-hiding + anti-adblock scriptlets) is applied inside each webview via `engine.getCosmeticsFilters()`. The engine is cached to disk and refreshed in the background on startup.
 
 ### Tab Management
 Custom `<webview>`-based tab system:
@@ -23,11 +23,13 @@ Custom `<webview>`-based tab system:
   - Capture-phase click interception in `webview-preload.js` → `ipcRenderer.sendToHost('open-tab', url)`
   - `<a target="_blank">` and `window.open()` → `new-window` event on webview
 - **Tab state**: URL bar, back/forward buttons, and reload/stop button update per active tab
+- **Session restore**: Open tabs are persisted to `userData/tabs.json` and restored on relaunch
 
 ### Navigation
-- Back / Forward / Reload buttons
+- Back / Forward / Reload buttons (reload toggles to stop while loading)
 - URL bar with enter-to-navigate (auto-prepends `https://` if a domain is detected, falls back to Google search)
 - Welcome page with "Open FMHY" button and saved bookmarks
+- **Keyboard shortcuts**: Ctrl+T (new tab), Ctrl+W (close tab), Ctrl+L (focus URL), Ctrl+R (reload), Ctrl+D (bookmark page), Ctrl+Tab / Ctrl+Shift+Tab (cycle tabs)
 
 ### Bookmarks
 Persisted as JSON in `userData/bookmarks.json`. Add via:
@@ -39,8 +41,11 @@ Displayed in the collapsible sidebar (toggle with `☰` button) and on the welco
 ### Picture-in-Picture
 Double-click any `<video>` element to toggle PiP. Works on all sites loaded in webviews.
 
+### Video Download
+Hover over any `<video>` element to reveal a download button (⬇). Click to save the video via a file picker dialog. Uses `session.defaultSession.on('will-download')` to handle the actual download.
+
 ### Downloads
-Tracked via `session.defaultSession.on('will-download')` — progress and completion shown in the download bar at the bottom of the window.
+Tracked via `session.defaultSession.on('will-download')` — progress and completion shown in the download bar at the bottom of the window. Completed downloads show a system notification.
 
 ### Base64 Auto-Decoder
 FMHY uses Base64-encoded links for external sites. `webview-preload.js` decodes `<a>` hrefs automatically:
@@ -70,6 +75,7 @@ fmhy-browser/
 |---|---|
 | Bookmarks | `%APPDATA%/fmhy-browser/bookmarks.json` |
 | Ad-block whitelist | `%APPDATA%/fmhy-browser/whitelist.json` |
+| Open tabs | `%APPDATA%/fmhy-browser/tabs.json` |
 
 ## Building
 
@@ -83,7 +89,8 @@ Output goes to `dist/`.
 ## Key Details
 
 - Frameless window with custom titlebar (drag to move, min/max/close buttons)
-- `contextIsolation: true`, `nodeIntegration: false`, `sandbox: false`, `webviewTag: true`
+- `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, `webviewTag: true`
 - Ad-block loads asynchronously on app start; all navigations and fetches are filtered
 - Webview preload (`webview-preload.js`) communicates with the renderer via `ipcRenderer.sendToHost`
+- All untrusted SSL certificates are rejected (`certificate-error` event → `callback(false)`)
 - Node.js 22+ required (see `.nvmrc`)

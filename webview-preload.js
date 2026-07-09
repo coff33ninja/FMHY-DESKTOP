@@ -151,6 +151,69 @@ function initPiP() {
   });
 }
 
+// Cosmetic filtering (element hiding via engine)
+function initCosmetics() {
+  function collectDOMFeatures() {
+    const classes = new Set(), ids = new Set(), hrefs = new Set();
+    try {
+      for (const el of document.querySelectorAll('*')) {
+        if (el.className && typeof el.className === 'string')
+          el.className.split(/\s+/).forEach(c => { if (c) classes.add(c); });
+        if (el.id) ids.add(el.id);
+        const h = el.getAttribute && el.getAttribute('href');
+        if (h) hrefs.add(h);
+      }
+    } catch (e) { console.error(e); }
+    return { classes: [...classes], ids: [...ids], hrefs: [...hrefs] };
+  }
+
+  function applyCosmetics(result) {
+    if (!result) return;
+    if (result.styles && result.styles.length > 0) {
+      const existing = document.getElementById('fmhy-cosmetic-styles');
+      if (existing) existing.remove();
+      const style = document.createElement('style');
+      style.id = 'fmhy-cosmetic-styles';
+      style.textContent = result.styles.join('\n');
+      document.head.appendChild(style);
+    }
+    if (result.scripts && result.scripts.length > 0) {
+      for (const script of result.scripts) {
+        try {
+          const s = document.createElement('script');
+          s.textContent = script;
+          document.head.appendChild(s);
+        } catch (e) { console.error(e); }
+      }
+    }
+  }
+
+  async function fetchAndApply(initial) {
+    try {
+      const features = collectDOMFeatures();
+      const result = await ipcRenderer.invoke('get-cosmetics', {
+        url: window.location.href, ...features, initial,
+      });
+      applyCosmetics(result);
+    } catch (e) { console.error('Cosmetics:', e); }
+  }
+
+  setTimeout(() => fetchAndApply(true), 1000);
+
+  let debounceTimer;
+  const observer = new MutationObserver(() => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => fetchAndApply(false), 500);
+  });
+  if (document.body) {
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'id'] });
+  } else {
+    document.addEventListener('DOMContentLoaded', () => {
+      observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'id'] });
+    });
+  }
+}
+
 function onReady(fn) {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', fn);
@@ -161,6 +224,7 @@ function onReady(fn) {
 
 onReady(() => {
   try { ipcRenderer.sendToHost('page-title', document.title); } catch (e) { console.error(e); }
+  initCosmetics();
   initLinkInterceptor();
   initVideoDownload();
   initPiP();

@@ -55,10 +55,10 @@ Prioritized list of improvements for v0.1.3-alpha.
 
 - [x] Phase 1 — Security & Reliability
   - [x] 1. Enable sandbox
-  - [x] 2. Add CSP
+   - [~] 2. Add CSP *(renderer meta-tag only; no session-header CSP for webview content)*
   - [x] 3. Remove unused openExternal
   - [x] 4. Remove cross-fetch
-  - [x] 5. Show window before adblocker
+   - [ ] 5. Show window before adblocker *(fixed in main.js)*
   - [x] 6. Add .catch() to IPC chains
   - [x] 7. Event-driven webview init
 - [x] Phase 2 — Code Quality
