@@ -3,7 +3,7 @@ name: Auto Tag
 on:
   push:
     branches: [master]
-    paths: ['package.json']
+    paths: ['version.json']
 
 permissions:
   contents: write
@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - id: get-version
-        run: echo "tag=v$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
+        run: echo "tag=v$(node -p \"JSON.parse(require('fs').readFileSync('./version.json','utf-8')).version\")" >> $GITHUB_OUTPUT
       - id: check-tag
         run: |
           if git rev-parse "${{ steps.get-version.outputs.tag }}" >/dev/null 2>&1; then
